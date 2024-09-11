@@ -35,9 +35,24 @@ async function fetchDataFromMongo(collectionName, equipmentNo) {
     }
     else{
         findList = [...searchList.map(x=>parseInt(x)), ...searchList.map(x=>x.toString())]
+      }
+    return await collection.find({EquipmentNumber : { $in: findList }}).toArray(); 
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+}
+
+async function fetchEqNoFromSapCollection(collectionName, Materialnummer) {
+  try {
+    const db = client.db(dbName);
+    const collection = db.collection(collectionName);
+    
+    var findList=[]
+    if(typeof searchList !== 'object'){
+        findList=[parseInt(Materialnummer.MaterialNumber), Materialnummer.MaterialNumber]
     }
     console.log(findList)
-    return await collection.find({EquipmentNumber : { $in: findList }}).toArray(); 
+    return await collection.find({Materialnummer : { $in: findList }}).toArray(); 
   } catch (error) {
     console.error("Error fetching data:", error);
   }
@@ -56,6 +71,17 @@ app.get('/api/sap', async (req, res) => {
     try {
       const data = await fetchDataFromMongo('sap-exel', req.query); 
       res.json(data); 
+    } catch (error) {
+      res.status(500).send("Error fetching data");
+    }
+  });
+
+  app.get('/api/sap-material', async (req, res) => {
+    try {
+      const data = await fetchEqNoFromSapCollection('sap-exel', req.query);
+      console.log(data.map(x=>x.EquipmentNumber))
+      const result = await fetchDataFromMongo('kommissionen', {EquipmentNumber : data.map(x=>x.EquipmentNumber)}); 
+      res.json(result); 
     } catch (error) {
       res.status(500).send("Error fetching data");
     }
